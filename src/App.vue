@@ -17,14 +17,14 @@
               <buttonTile @handleClick="handleNum('0')" class="width" :number="'0'" :color="'#505050'"></buttonTile>
             </div>
             <div class="col-3">
-              <buttonTile :number="''" :color="'#a6a6a6'"></buttonTile>
+              <buttonTile @handleClick="toggleNegative()" :number="'+/-'" :color="'#a6a6a6'"></buttonTile>
               <buttonTile @handleClick="handleNum('8')" :number="'8'" :color="'#505050'"></buttonTile>
               <buttonTile @handleClick="handleNum('5')" :number="'5'" :color="'#505050'"></buttonTile>
               <buttonTile @handleClick="handleNum('2')" :number="'2'" :color="'#505050'"></buttonTile>
               <div></div>
             </div>
             <div class="col-3">
-              <buttonTile :number="''" :color="'#a6a6a6'"></buttonTile>
+              <buttonTile @handleClick="exponent()" :number="'^'" :color="'#a6a6a6'"></buttonTile>
               <buttonTile @handleClick="handleNum('9')" :number="'9'" :color="'#505050'"></buttonTile>
               <buttonTile @handleClick="handleNum('6')" :number="'6'" :color="'#505050'"></buttonTile>
               <buttonTile @handleClick="handleNum('3')" :number="'3'" :color="'#505050'"></buttonTile>
@@ -70,19 +70,63 @@ export default {
         state.secondaryDisplay = ''
         state.operator = null
       },
-      handleOperator: function (operator) {
-        if (state.operator == null) {
-          state.secondaryDisplay = state.display
-          state.display = ''
+      toggleNegative: function () {
+        if(state.display[0] == '-') {
+          state.display = state.display.slice(1)
+        } else {
+          state.display = '-' + state.display
         }
-        state.operator = operator
+      },
+      exponent: function () {
+        if(!state.display.includes('^')) {
+          state.display += '^'
+        }
+      },
+      evalExponent: function(numWithExp) {
+        let num = numWithExp.split('^')[0]
+        let exp = numWithExp.split('^')[1]
+        if(exp == '') {
+          return num
+        }
+        let toReturn = num
+        for(let i = 1; i < exp; i++) {
+          toReturn = toReturn * num
+        }
+        return toReturn
+      },
+      checkForExponent: function() {
+        if(state.display.includes('^')) {
+          state.display = this.evalExponent(state.display)
+        }
+      },
+      handleOperator: function (operator) {
+        if(state.operator == null) {
+          if(state.display == '') {
+            return;
+          } else {
+            this.checkForExponent()
+            state.secondaryDisplay = state.display
+            state.display = ''
+            state.operator = operator
+          }
+        } else {
+          if(state.display == '') {
+            state.operator = operator
+          } else {
+            state.secondaryDisplay = `${this.determineResult()}`
+            state.display = ''
+            state.operator = operator
+            return
+          }
+        }
       },
       evaluate: function () {
-        state.display = this.determineResult()
+        state.display = `${this.determineResult()}`
         state.secondaryDisplay = ''
         state.operator = null
       },
       determineResult: function () {
+        this.checkForExponent()
         switch(state.operator) {
           case ('÷'):
             return parseFloat(state.secondaryDisplay) / parseFloat(state.display)
@@ -92,10 +136,12 @@ export default {
             return parseFloat(state.secondaryDisplay) - parseFloat(state.display)
           case ('+'):
             return parseFloat(state.secondaryDisplay) + parseFloat(state.display)
+            case (null):
+              return state.display
         }
       },
       handleDecimal: function () {
-        if(!state.display.includes('.')) {
+        if(!state.display.includes('.') && !state.display.includes('^')) {
           state.display += '.'
         }
       },
